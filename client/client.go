@@ -22,10 +22,17 @@ func main() {
 		if buf[0] == 3 {
 			log.Println("ICMP code 3 -- Port Unreachable")
 		} else {
-			log.Println("\n----------ICMP--------- len:", numRead)
-			log.Printf("\ntype: %v\ncode: %d\nchecksum: % X\nID: % X\nSeq: % X\nData: %s\n", ipv4.ICMPType(buf[0]), buf[1], buf[2:4], buf[4:6], buf[6:8], buf[8:])
-			log.Printf("Hex: % X\n", buf[:numRead])
+			checksum := int32(buf[2])<<8 + int32(buf[3])
+			ID := int32(buf[4])<<8 + int32(buf[5])
+			seq := int32(buf[6])<<8 + int32(buf[6])
+			log.Println("----------ICMP--------- len:", numRead)
+			log.Println("Type:", ipv4.ICMPType(buf[0]))
+			log.Println("Code:", buf[1])
+			log.Println("Checksum:", checksum, "Hex:", buf[2:4])
+			log.Println("ID:", ID, "Hex:", buf[4:6])
+			log.Println("Seq:", seq, "Hex:", buf[6:8])
+			log.Println("Data:", string(buf[8:]))
+			log.Printf("Full ICMP Hex: % X\n", buf[:numRead])
 		}
 	}
-
 }
