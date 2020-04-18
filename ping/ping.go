@@ -14,7 +14,8 @@ import (
 type ping struct {
 	seq      int
 	interval int
-	targetIP string
+	IP       net.IP //change to IP && add from string
+	from     string
 	conn     *icmp.PacketConn
 }
 
@@ -36,7 +37,7 @@ func (p *ping) sendEcho() {
 		log.Fatal(err)
 	}
 
-	if _, err := p.conn.WriteTo(wb, &net.IPAddr{IP: net.ParseIP(p.targetIP)}); err != nil {
+	if _, err := p.conn.WriteTo(wb, &net.IPAddr{IP: p.IP}); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -52,12 +53,14 @@ func (p *ping) getResponce() {
 		log.Fatal(err)
 	}
 
-	if message.Type == ipv4.ICMPTypeEchoReply {
-		echoReply := message.Body.(*icmp.Echo)
-		RTT := getRoundTripDelay(string(echoReply.Data))
-
-		fmt.Printf("%d bytes from %v: icmp_seq=%d ttl=%d time=%v\n", read, peer, echoReply.Seq, 0, RTT)
+	if message.Type != ipv4.ICMPTypeEchoReply {
+		return
 	}
+
+	echoReply := message.Body.(*icmp.Echo)
+	RTT := getRoundTripDelay(string(echoReply.Data))
+
+	fmt.Printf("%d bytes from %v: icmp_seq=%d ttl=%d time=%v\n", read, peer, echoReply.Seq, 0, RTT)
 }
 
 func getRoundTripDelay(lastTime string) time.Duration {
@@ -68,3 +71,26 @@ func getRoundTripDelay(lastTime string) time.Duration {
 	}
 	return time.Now().Sub(prevTime)
 }
+
+func (p *ping) DNS(addr string) {
+	IP, err := net.LookupIP(addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	p.IP = IP[0]
+
+	names, err := net.LookupAddr(IP[0].String())
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if addr == IP[0].String() {
+		p.from = addr
+	} else {
+		p.from = fmt.Sprintf("%s (%s)", names[0], IP[0].String())
+	}
+
+	fmt.Println("PING", addr, IP[0], "---- bytes of data")
+}
+
+//DNS
