@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"runtime"
 	"time"
@@ -12,6 +11,19 @@ import (
 
 var gPing *ping
 
+func flags() string {
+	destination := flag.String("dest", "N/A", "dns name or ipv4 address")
+
+	flag.IntVar(&gPing.interval, "i", 1, "Wait interval between seding each packet.")
+
+	flag.Parse()
+	if *destination == "N/A" {
+		log.Fatal("ping: usage error: Destination address required\n\tUse -dest <destination>") //change to not log
+	}
+
+	return *destination
+}
+
 func init() {
 	runtime := runtime.GOOS
 
@@ -19,13 +31,7 @@ func init() {
 		log.Fatal(runtime, " is not suported")
 	}
 	gPing = new(ping)
-	flag.StringVar(&gPing.targetIP, "dest", "N/A", "dns name or ipv4 address")
-	flag.IntVar(&gPing.interval, "i", 1, "Wait interval between seding each packet.")
 
-	flag.Parse()
-	if gPing.targetIP == "N/A" {
-		log.Fatal("ping: usage error: Destination address required\n\tUse -dest <destination>") //change to not log
-	}
 }
 
 func main() {
@@ -36,7 +42,9 @@ func main() {
 	}
 	defer gPing.conn.Close()
 
-	fmt.Println(gPing)
+	destination := flags()
+	gPing.DNS(destination)
+
 	ticker := time.NewTicker(time.Duration(gPing.interval) * time.Second).C
 	go func() {
 		for {

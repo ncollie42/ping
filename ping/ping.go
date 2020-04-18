@@ -44,7 +44,7 @@ func (p *ping) sendEcho() {
 
 func (p *ping) getResponce() {
 	buff := make([]byte, 1500)
-	read, peer, err := p.conn.ReadFrom(buff)
+	read, _, err := p.conn.ReadFrom(buff)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func (p *ping) getResponce() {
 	echoReply := message.Body.(*icmp.Echo)
 	RTT := getRoundTripDelay(string(echoReply.Data))
 
-	fmt.Printf("%d bytes from %v: icmp_seq=%d ttl=%d time=%v\n", read, peer, echoReply.Seq, 0, RTT)
+	fmt.Printf("%d bytes from %s: icmp_seq=%d ttl=%d time=%v\n", read, p.from, echoReply.Seq, 0, RTT)
 }
 
 func getRoundTripDelay(lastTime string) time.Duration {
@@ -90,7 +90,5 @@ func (p *ping) DNS(addr string) {
 		p.from = fmt.Sprintf("%s (%s)", names[0], IP[0].String())
 	}
 
-	fmt.Println("PING", addr, IP[0], "---- bytes of data")
+	fmt.Printf("PING %s (%v) --- bytes of data\n", addr, IP[0])
 }
-
-//DNS
