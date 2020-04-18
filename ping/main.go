@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 	var err error
-	gPing.conn, err = icmp.ListenPacket("ip4:icmp", "192.168.43.249")
+	gPing.conn, err = icmp.ListenPacket("ip4:icmp", "192.168.122.1")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,3 +59,56 @@ func main() {
 	}
 
 }
+
+// func main2() {
+
+// 	intervals := flag.Int("i", 1, "Wait interval between seding each packet.")
+// 	flag.Parse()
+
+// 	args := flag.Args()
+// 	if len(args) != 0 {
+// 		fmt.Println("ping: usage error: Destination address required")
+// 		os.Exit(1)
+// 	}
+
+// 	localIP := localIP()
+// 	conn, err := icmp.ListenPacket("ip4:icmp", localIP)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer gPing.conn.Close()
+
+// 	IP, fromStr := newDNS(args[0])
+
+// 	interrupt := make(chan os.Signal, 1)
+// 	signal.Notify(interrupt, os.Interrupt)
+// 	ticker := time.NewTicker(time.Duration(*intervals) * time.Second).C
+// 	sentCount := 0
+// 	resvCount := 0
+// 	go func() {
+// 		seq := 0
+// 		for {
+// 			select {
+// 			case <-interrupt:
+// 				statisticsAndQuit(sentCount, resvCount)
+// 			case <-ticker:
+// 				sendEcho(*conn, seq, IP, &sentCount)
+
+// 			}
+// 			seq++
+// 		}
+// 	}()
+// 	for {
+// 		getResponce(*conn, fromStr, &resvCount)
+// 	}
+// }
+
+// func flags2() (interval int, others int) {return}
+
+// func localIP() string {
+// 	return ""
+// }
+
+// func newDNS(addr string) (ip net.IP, from string) {
+// 	return nil, ""
+// }
