@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 	var err error
-	gPing.conn, err = icmp.ListenPacket("ip4:icmp", "127.0.0.1")
+	gPing.conn, err = icmp.ListenPacket("ip4:icmp", "192.168.43.249")
 	if err != nil {
 		log.Fatal(err)
 	}
