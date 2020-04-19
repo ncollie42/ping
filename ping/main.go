@@ -1,20 +1,21 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"runtime"
-	"sort"
 	"strings"
 	"time"
 
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 )
+
+const IPheaderSize = 20
+const ICMPheaderSize = 8
 
 func init() {
 	runtime := runtime.GOOS
@@ -29,50 +30,9 @@ func init() {
 	}
 }
 
-func doDNS(addr string) (targetIP net.IP, fromStr string) {
-	IPs, err := net.LookupIP(addr)
-	if err != nil {
-		fmt.Println("Lookup: ping: google.com: Name or service not known")
-		os.Exit(1)
-	}
-	for _, IP := range IPs {
-		if IP.To4() != nil {
-			targetIP = IP
-			break
-		}
-	}
-	if targetIP == nil {
-		fmt.Println("Destination does not have an IPv4 addr")
-		os.Exit(1)
-	}
-
-	names, err := net.LookupAddr(targetIP.String())
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	if addr == targetIP.String() {
-		fromStr = addr
-	} else {
-		fromStr = fmt.Sprintf("%s (%s)", names[0], targetIP.String())
-	}
-
-	return
-}
-
 func main() {
+	destination, intervals, size, ttl := flags()
 
-	intervals := flag.Int("i", 1, "Wait interval between seding each packet.")
-	size := flag.Int("s", 56, " Specifies the number of data bytes to be sent. The default is 56, which translates into 64 ICMP data bytes when combined with the 8 bytes of ICMP header data.")
-	ttl := flag.Int("t", 50, "Set the IP Time to Live.")
-
-	flag.Parse()
-
-	if len(flag.Args()) != 1 {
-		fmt.Println("ping: usage error: Destination address required")
-		os.Exit(1)
-	}
-	destination := flag.Arg(0)
 	localIP := localIP()
 	if localIP == "" {
 		fmt.Println("Could not find IPv4")
@@ -85,14 +45,19 @@ func main() {
 	}
 	defer conn.Close()
 
-	conn.IPv4PacketConn().SetTTL(*ttl)
+	err = conn.IPv4PacketConn().SetTTL(*ttl)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	targetIP, fromStr := doDNS(destination)
-	fmt.Printf("PING %s (%s) %d(%d) bytes of data\n", destination, targetIP, *size, *size+28)
+
+	fmt.Printf("PING %s (%s) %d(%d) bytes of data\n", destination, targetIP, *size, *size+ICMPheaderSize+IPheaderSize)
+	
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
-	ticker := time.NewTicker(time.Duration(*intervals) * time.Second).C
 
+	ticker := time.NewTicker(time.Duration(*intervals) * time.Second).C
 	stats := stats{start: time.Now()}
 	go func() {
 		seq := 1
@@ -114,79 +79,6 @@ func main() {
 	fmt.Println("Hello world", intervals, localIP)
 }
 
-type stats struct {
-	sentCount int
-	resvCount int
-	errsCount int
-	RTT       []time.Duration
-	start     time.Time
-}
-
-func statisticsAndQuit(stats stats, Destination string) {
-	packetLoss := (1 - (float64(stats.resvCount) / float64(stats.sentCount))) * 100
-
-	fmt.Println("\n---", Destination, "ping statistics ---")
-	errors := ""
-	if stats.errsCount > 0 {
-		errors = fmt.Sprintf("+%d errors, ", stats.errsCount)
-	}
-	fmt.Printf("%d packets transmited, %d received, %s%.2f%% packet loss, time %.3fs\n",
-		stats.sentCount, stats.resvCount, errors, packetLoss, time.Now().Sub(stats.start).Seconds())
-
-	sort.Sort(byTime(stats.RTT))
-	if len(stats.RTT) > 0 {
-		min := stats.RTT[0]
-		avg := avg(stats.RTT)
-		max := stats.RTT[len(stats.RTT)-1]
-		mdev := stats.RTT[len(stats.RTT)/2]
-		fmt.Printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n", min.Seconds(), avg.Seconds(), max.Seconds(), mdev.Seconds())
-	}
-	os.Exit(0)
-}
-
-func avg(times []time.Duration) time.Duration {
-	tottal := time.Duration(0)
-	for _, val := range times {
-		tottal += val
-	}
-	tottal = tottal / time.Duration(len(times))
-	return tottal
-}
-
-type byTime []time.Duration
-
-func (t byTime) Len() int {
-	return len(t)
-}
-
-func (t byTime) Swap(i, j int) {
-	t[i], t[j] = t[j], t[i]
-}
-
-func (t byTime) Less(i, j int) bool {
-	return t[i] < t[j]
-}
-
-func localIP() string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return ""
-	}
-	for _, addr := range addrs {
-		switch val := addr.(type) {
-		case *net.IPNet:
-			ip := val.IP
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			if ip.To4() == nil {
-				continue
-			}
-			return ip.String()
-		}
-	}
-	return ""
-}
 
 func sendEcho(conn *icmp.PacketConn, seq int, IP net.IP, sentCount *int, payloadSize int) {
 	time := []byte((time.Now().Format(time.UnixDate)))
