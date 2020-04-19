@@ -53,7 +53,7 @@ func main() {
 	targetIP, fromStr := doDNS(destination)
 
 	fmt.Printf("PING %s (%s) %d(%d) bytes of data\n", destination, targetIP, *size, *size+ICMPheaderSize+IPheaderSize)
-	
+
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
@@ -78,7 +78,6 @@ func main() {
 
 	fmt.Println("Hello world", intervals, localIP)
 }
-
 
 func sendEcho(conn *icmp.PacketConn, seq int, IP net.IP, sentCount *int, payloadSize int) {
 	time := []byte((time.Now().Format(time.UnixDate)))

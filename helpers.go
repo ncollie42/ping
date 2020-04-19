@@ -62,7 +62,7 @@ func statisticsAndQuit(stats stats, Destination string) {
 }
 
 func flags() (destination string, intervals, size, ttl *int) {
-	intervals = flag.Int("i", 1, "Wait interval between seding each packet.")
+	intervals = flag.Int("i", 1, "Wait interval between seending each packet.")
 	size = flag.Int("s", 56, " Specifies the number of data bytes to be sent. The default is 56, which translates into 64 ICMP data bytes when combined with the 8 bytes of ICMP header data.")
 	ttl = flag.Int("t", 50, "Set the IP Time to Live.")
 
