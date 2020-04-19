@@ -1,5 +1,5 @@
 # Unix Ping command
-* currently only Ipv4 supported
+* Currently only Ipv4 supported
 * Flags supported
   * -i, set wait interval between sending each packet
   * -t, set TTL
